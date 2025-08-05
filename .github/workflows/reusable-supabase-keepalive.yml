@@ -1,9 +1,11 @@
 name: Supabase Keep-Alive
 on:
   workflow_call:
-    inputs:
-      SUPABASE_URL: { required: true, type: string }
-      SUPABASE_ANON: { required: true, type: string }
+    secrets:
+      SUPABASE_URL:
+        required: true
+      SUPABASE_ANON:
+        required: true
 
 jobs:
   ping:
@@ -11,6 +13,6 @@ jobs:
     steps:
       - name: Curl /auth/v1/health
         run: |
-          curl -fsSL "${{ inputs.SUPABASE_URL }}/auth/v1/health?apikey=${{ inputs.SUPABASE_ANON }}"
+          curl -fsSL "${{ secrets.SUPABASE_URL }}/auth/v1/health?apikey=${{ secrets.SUPABASE_ANON }}" \
           && echo "OK – Supabase awake."
           || echo "::warning:: keep-alive ping failed."
