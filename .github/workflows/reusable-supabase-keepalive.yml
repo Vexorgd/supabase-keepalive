@@ -13,4 +13,4 @@ jobs:
     steps:
       - name: Curl /auth/v1/health
         run: |
-          (curl -fsSL "${{ secrets.SUPABASE_URL }}/auth/v1/health?apikey=${{ secrets.SUPABASE_ANON }}" && echo "OK – Supabase awake." || echo "::warning:: keep-alive ping failed.")
+          (curl -fsSL "${{ secrets.SUPABASE_URL }}/auth/v1/health?apikey=${{ secrets.SUPABASE_ANON }}" && echo "OK – Supabase awake.") || echo "::warning:: keep-alive ping failed."
