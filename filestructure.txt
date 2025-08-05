@@ -1,4 +1,5 @@
 |-- .github
     |-- workflows
         |-- reusable-supabase-keepalive.yml
+|-- .gitignore
 |-- README.md

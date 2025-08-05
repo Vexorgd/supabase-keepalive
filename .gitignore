@@ -1,0 +1,10 @@
+# Editor directories
+.vscode/
+.idea/
+
+# OS-specific trash
+.DS_Store
+Thumbs.db
+
+# Misc
+*.log
