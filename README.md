@@ -2,7 +2,6 @@
 
 [![GitHub release](https://img.shields.io/github/v/release/Vexorgd/supabase-keepalive?sort=semver)](https://github.com/Vexorgd/supabase-keepalive/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Workflow Status](https://github.com/Vexorgd/supabase-keepalive/actions/workflows/reusable-supabase-keepalive.yml/badge.svg)](https://github.com/Vexorgd/supabase-keepalive/actions)
 
 Reusable GitHub Action that sends a lightweight GET request to Supabase’s public `/auth/v1/health` endpoint — helping maintain responsiveness during development, staging, or demo phases.
 
