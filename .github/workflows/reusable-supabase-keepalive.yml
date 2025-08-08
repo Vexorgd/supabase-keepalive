@@ -1,4 +1,4 @@
-name: Supabase Keep-Alive
+name: Maintain Supabase Responsiveness
 on:
   workflow_call:
     secrets:
@@ -11,6 +11,8 @@ jobs:
   ping:
     runs-on: ubuntu-latest
     steps:
-      - name: Curl /auth/v1/health
+      - name: Ping public /auth/v1/health endpoint
         run: |
-          (curl -fsSL "${{ secrets.SUPABASE_URL }}/auth/v1/health?apikey=${{ secrets.SUPABASE_ANON }}" && echo "OK – Supabase awake.") || echo "::warning:: keep-alive ping failed."
+          (curl -fsSL "${{ secrets.SUPABASE_URL }}/auth/v1/health?apikey=${{ secrets.SUPABASE_ANON }}" \
+            && echo "OK – Supabase instance is responsive.") \
+            || echo "::warning:: Health check ping failed."

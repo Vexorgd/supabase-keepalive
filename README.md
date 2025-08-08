@@ -1,38 +1,48 @@
-# supabase-keepalive
+# Supabase Keepalive
 
-Reusable GitHub Action that sends a lightweight ping to a Supabase project’s
-`/auth/v1/health` endpoint on a schedule so the free-tier instance never auto-pauses.
+Reusable GitHub Action that sends a lightweight GET request to Supabase’s public `/auth/v1/health` endpoint — helping maintain responsiveness during development, staging, or demo phases.
 
-## Why this exists
+## Why This Exists
 
-Supabase pauses free-tier projects after **7 days** of no API traffic.
-During low-traffic stages (e.g., pre-launch, staging, demos) a single GET request
-every few hours is enough to reset the timer.
-Keeping the logic in one dedicated repo means every website or microservice can
-**reference** the same workflow instead of duplicating code.
+Supabase free-tier projects may pause after several days without API traffic, leading to a cold-start delay the next time you need to test, demo, or review.
+This action allows you to schedule minimal, non-invasive pings to the public health endpoint so the instance stays responsive for legitimate development and demonstration purposes.
 
-## How to consume this workflow in _any_ repo
+**Key points:**
 
-1. **Add two repository secrets**
-   | Name | Example value |
-   |------|---------------|
-   | `SUPABASE_URL` | `https://abccompany.supabase.co` |
-   | `SUPABASE_ANON` | `eyJhbGciOiJIUzI1...` (public anon key) |
+- Uses only the **public `/auth/v1/health` endpoint**
+- Does **not** create, modify, or delete data
+- Intended for **development/staging continuity** — not to avoid usage-based billing
 
-2. **Create a tiny caller workflow** in the consuming repo
-   `.github/workflows/keepalive.yml`:
+---
 
-   ```yaml
-   name: Keep Supabase Awake
-   on:
-     schedule:
-       - cron: "0 */6 * * *" # every 6 hours, UTC
-     workflow_dispatch: # manual trigger option
+## How to Use
 
-   jobs:
-     use-reusable:
-       uses: Vexorgd/supabase-keepalive/.github/workflows/reusable-supabase-keepalive.yml@main
-       with:
-         SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-         SUPABASE_ANON: ${{ secrets.SUPABASE_ANON }}
-   ```
+1. **Add two repository secrets** (safe public values):
+
+   - `SUPABASE_URL` → e.g. `https://abccompany.supabase.co`
+   - `SUPABASE_ANON` → your **public anon key** (not service role)
+
+2. **Create a caller workflow** in your consuming repo at `.github/workflows/keepalive.yml`:
+
+```yaml
+name: Maintain Supabase Responsiveness
+on:
+  schedule:
+    - cron: "0 */6 * * *" # every 6 hours UTC; adjust as needed (8–12 hours is common)
+  workflow_dispatch: # manual trigger option
+
+jobs:
+  ping:
+    uses: Vexorgd/supabase-keepalive/.github/workflows/reusable-supabase-keepalive.yml@main
+    with:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_ANON: ${{ secrets.SUPABASE_ANON }}
+```
+
+---
+
+## Best Practices
+
+- Keep the schedule conservative (e.g., every 8–12 hours) to avoid unnecessary traffic.
+- Disable the workflow if you no longer need it.
+- For production workloads, rely on actual application traffic rather than synthetic pings.
