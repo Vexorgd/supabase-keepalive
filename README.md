@@ -41,7 +41,7 @@ on:
 
 jobs:
   ping:
-    uses: Vexorgd/supabase-keepalive/.github/workflows/reusable-supabase-keepalive.yml@v1.0.2
+    uses: Vexorgd/supabase-keepalive/.github/workflows/reusable-supabase-keepalive.yml@v1.0.3
     with:
       SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
       SUPABASE_ANON: ${{ secrets.SUPABASE_ANON }}
