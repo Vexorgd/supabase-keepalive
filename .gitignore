@@ -2,6 +2,9 @@
 .vscode/
 .idea/
 
+# Generated locally by the FileStructure editor extension — never commit
+filestructure.txt
+
 # OS-specific trash
 .DS_Store
 Thumbs.db
