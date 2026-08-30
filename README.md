@@ -12,6 +12,15 @@ its own row in a dedicated table that keeps a rolling ~1-year window.
 > is the real fix — a genuine DB write that verifies its own effect. If you were
 > calling the old reusable workflow, see [Migrating from v1](#migrating-from-v1).
 
+> **⚠️ What this is for — read this first.** A **temporary bridge** to keep a
+> **free‑tier project responsive while you're actively developing it** — so a
+> demo isn't interrupted by a cold start, and a project you step away from for a
+> week doesn't pause on you. It makes a few tiny writes a day: minimal, low‑volume,
+> not abusive. It is **not** a way to run production on the free tier, keep dozens
+> of idle projects alive, or avoid usage‑based billing. **It's a bridge to
+> production — once your project is real, move it to a paid plan (which doesn't
+> pause) and retire this.** See [Intended use](#intended-use-and-what-its-not).
+
 ## Two ways to run it (pick one — same real write, same assertion)
 
 | Path | Best for | Runs on |
@@ -132,8 +141,17 @@ To migrate:
    write needs the service-role key (kept only as a secret / in `.env`, never in
    a repo).
 
-## Not a billing workaround
+## Intended use (and what it's not)
 
-This keeps a **dev/staging/demo** project responsive. For anything you rely on,
-run it on the **Pro plan** (paid projects don't pause) rather than synthetic
-pings.
+**Use it for:** keeping a **dev / staging / demo** project awake *while you're
+building it* — so it stays responsive for a demo, and a short break (away for a
+week) doesn't pause it and cost you cold‑start recovery. Think of it as a
+**temporary bridge to production**.
+
+**It is not a long‑term workaround.** It does the *minimum* to register real
+activity — a few small writes a day, nothing high‑volume — but the moment a
+project matters, or is meant to run indefinitely, put it on a **paid plan**: paid
+projects don't pause, and you should never rely on synthetic activity for anything
+you can't afford to lose. Please don't use it to keep many idle projects alive or
+to sidestep usage‑based billing — that's not what it's for, and it's not fair use
+of the free tier.
