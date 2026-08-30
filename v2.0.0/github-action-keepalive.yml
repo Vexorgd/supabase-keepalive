@@ -1,0 +1,52 @@
+# =============================================================================
+# Supabase keepalive — scheduled GitHub Action (v2).
+#
+# THE NO-ALWAYS-ON-HOST PATH. Runs entirely on GitHub's infrastructure, so it
+# works even when your own machine is off. Does the SAME real DB write + effect
+# assertion as the host script — this is v1's Action fixed (v1 pinged an auth
+# endpoint that never touched Postgres; this writes a real row).
+#
+# Free: public repos get unlimited Actions minutes; a private repo's every-6h
+# run is ~2 min/day, far under the free tier.
+#
+# INSTALL (in YOUR project's repo — not this tool repo):
+#   1. Run setup.sql once in the Supabase dashboard (SQL Editor) to create the
+#      sealed `keepalive` table.
+#   2. Copy supabase-keepalive.sh into your repo and point SCRIPT_PATH at it.
+#   3. Copy this file to .github/workflows/keepalive.yml.
+#   4. Repo -> Settings -> Secrets and variables -> Actions -> add secrets:
+#        SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY
+#   5. (optional) Actions tab -> this workflow -> "Run workflow" to test now.
+#
+# GOTCHA: GitHub DISABLES scheduled workflows after 60 days of NO repo activity.
+# For a keepalive that is the last thing you want — push something (or re-enable
+# the workflow) within 60 days. A tiny monthly commit avoids it.
+# =============================================================================
+name: Supabase keepalive
+
+on:
+  schedule:
+    - cron: '0 */6 * * *'   # every 6 hours — several writes/day, above the DAILY bar
+  workflow_dispatch: {}      # manual "Run workflow" button — your on-demand check
+
+# Never let a scheduled run and a manual run overlap (the Action-side flock).
+concurrency:
+  group: supabase-keepalive
+  cancel-in-progress: false
+
+jobs:
+  keepalive:
+    runs-on: ubuntu-latest
+    env:
+      SCRIPT_PATH: scripts/supabase-keepalive.sh   # <-- adjust to where you put the script
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      KEEPALIVE_SOURCE: github-action
+      KEEPALIVE_LOG: keepalive.log
+    steps:
+      - uses: actions/checkout@v4
+      - name: Keepalive — real write + assert the effect
+        run: bash "$SCRIPT_PATH"   # exits non-zero on a failed/unconfirmed write -> red X + failure email
+      - name: Show the JSONL result line
+        if: always()
+        run: tail -n 1 keepalive.log 2>/dev/null || echo "no log line written"
