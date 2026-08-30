@@ -1,30 +1,43 @@
--- Supabase keepalive v2 — one-time setup.
--- Run this in the Supabase dashboard: SQL Editor -> New query -> Run.
+-- Supabase keepalive v2 — one-time setup (APPEND model + 1-year rolling retention).
+-- Run in the Supabase dashboard: SQL Editor -> New query -> Run.
 --
--- Creates a tiny DEDICATED, STERILE table with a single row that the keepalive
--- script upserts on every run. It holds nothing but a timestamp — no app data,
--- no PII — so the keepalive path never touches anything sensitive. Nothing else
--- in your schema is affected.
+-- Each keepalive check INSERTS a new row (a real, unambiguous Postgres write).
+-- The table is a bounded ~1-year window: a trigger drops rows older than a year
+-- on every insert, so it never grows without limit. The row is deliberately
+-- extensible (a `meta` jsonb) so richer diagnostic fields can be added later
+-- with no schema change. Holds no app data / PII — only run metadata.
+--
+-- NOTE: this REPLACES the earlier single-row heartbeat table. That table held
+-- only a timestamp (no real data), so dropping it loses nothing.
 
-create table if not exists public.keepalive (
-  id       int primary key,
-  last_run timestamptz not null default now()
+drop table if exists public.keepalive cascade;
+
+create table public.keepalive (
+  id       bigint generated always as identity primary key,
+  run_at   timestamptz not null default now(),
+  source   text,          -- who ran it (hostname, or "github-action")
+  trigger  text,          -- "cron" | "manual"
+  meta     jsonb not null default '{}'::jsonb   -- future diagnostic fields
 );
 
--- Seed the single sentinel row (id = 1). Safe to run repeatedly.
-insert into public.keepalive (id, last_run)
-values (1, now())
-on conflict (id) do nothing;
+create index if not exists keepalive_run_at_idx on public.keepalive (run_at);
 
--- Lock it down. The script authenticates with the SERVICE-ROLE key, which
--- bypasses Row Level Security. Everyone else should get nothing:
---   * Enable RLS and add NO permissive policies -> anon/authenticated are denied.
---   * Revoke the default API grants for good measure (defense in depth).
--- Result: even if your anon key leaks, this table is unreadable and unwritable
--- through the API; only the service role (which stays on your always-on host)
--- can touch it.
+-- Rolling retention: after each insert, drop anything older than 1 year.
+create or replace function public.keepalive_prune() returns trigger
+  language plpgsql security definer set search_path = public as $$
+begin
+  delete from public.keepalive where run_at < now() - interval '1 year';
+  return null;
+end;
+$$;
+
+drop trigger if exists keepalive_prune_trg on public.keepalive;
+create trigger keepalive_prune_trg
+  after insert on public.keepalive
+  for each statement execute function public.keepalive_prune();
+
+-- Lock it down: service-role only (bypasses RLS); anon/authenticated get nothing.
 alter table public.keepalive enable row level security;
 alter table public.keepalive force row level security;
-
 revoke all on public.keepalive from anon, authenticated;
--- (No `grant` and no `create policy` here on purpose — that is what seals it.)
+-- (No policy, no grant — that absence is what seals it.)

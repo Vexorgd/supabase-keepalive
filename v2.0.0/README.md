@@ -4,7 +4,8 @@
 > v2 makes a real database write, several times a day, from an always-on host.
 
 Keeps a **free-tier** Supabase project from auto-pausing (~7-day inactivity) by
-performing one real, tiny `UPDATE` every few hours.
+performing one real, tiny `INSERT` per check, several times a day. Each check is
+its own row in a dedicated table that keeps a rolling ~1-year window.
 
 ## Two ways to run it (pick one — same real write, same assertion)
 
@@ -27,15 +28,16 @@ you specifically want a self-hosted box.
   fall below the threshold. **The fix is a real write AND a daily-or-better
   cadence** — this tool runs every 6 hours by default.
 - **A green log line must mean the write landed.** v1-style scripts asserted on
-  the HTTP status code. This script reads the row back and confirms the
-  timestamp actually advanced, so a success line can't lie.
+  the HTTP status code. This script reads the inserted row back and confirms its
+  `run_at` is the timestamp we sent, so a success line can't lie.
 
 ## Setup
 
 **1. Create the keepalive table** — Supabase dashboard → SQL Editor → run
-[`setup.sql`](./setup.sql). It creates a tiny **sterile** `public.keepalive(id,
-last_run)` table (one row, just a timestamp — no app data, no PII) and **seals it
-with RLS** (only the service-role key can touch it; even a leaked anon key gets
+[`setup.sql`](./setup.sql). It creates a **sterile** `public.keepalive` table
+(`id, run_at, source, trigger, meta` — no app data, no PII), adds a trigger that
+**drops rows older than 1 year** (a bounded, rolling window), and **seals it with
+RLS** (only the service-role key can touch it; even a leaked anon key gets
 nothing). Nothing else in your schema is affected.
 
 ### Path A — Scheduled GitHub Action (no always-on host)
@@ -67,7 +69,7 @@ chmod 600 .env            # lock down the secret
 nano .env                 # paste SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY
 chmod +x supabase-keepalive.sh
 
-# test once — expect: [<ts>] keepalive ok (HTTP 200) — row advanced to <ts>
+# test once — expect: [<ts>] keepalive ok (HTTP 201) — row <n> inserted at <ts>
 ./supabase-keepalive.sh
 ```
 
@@ -87,21 +89,21 @@ boundaries, leaving uneven gaps. Prefer the hour field as above.
 
 ## Verify it's working
 
-- Console shows `keepalive ok … row advanced to …`; `keepalive.log` gains a JSONL
-  line per run, e.g. `{"ts":"…","status":"ok","effect_confirmed":true,…}`. A
-  monitor reads only the **last** line — `status` + how fresh `ts` is → ok / stale
-  / failed. (`status:"ok"` with `effect_confirmed:false` counts as failed.)
-- In Supabase, `public.keepalive` row `id=1` has a recent `last_run`.
+- Console shows `keepalive ok … row <n> inserted at …`; `keepalive.log` gains a
+  JSONL line per run, e.g. `{"ts":"…","status":"ok","effect_confirmed":true,"sb_id":<n>,…}`.
+  A monitor reads only the **last** line — `status` + how fresh `ts` is → ok /
+  stale / failed. (`status:"ok"` with `effect_confirmed:false` counts as failed.)
+- In Supabase, `public.keepalive` **accumulates rows** — one per check — and the
+  newest `run_at` is recent. `sb_id` in the log matches the Supabase row `id`.
 - A deliberately wrong `SUPABASE_URL` produces a `FAILED` line (test it — that
   visible-failure behavior is the thing v1 lacked).
 - The project status stays **Active**; no pause-warning emails.
 
 ## Using an existing table instead
 
-Prefer not to add a table? Point the script at any table that has an int `id`
-primary key and a `last_run timestamptz` column via `KEEPALIVE_TABLE` /
-`KEEPALIVE_ID` in `.env`, or adapt the payload in the script. Filter the
-sentinel row out of real queries (e.g. a dedicated id, or a `source` column).
+Prefer not to add a table? Point the script at any table that has a
+`run_at timestamptz` column (and lets the DB generate the key) via
+`KEEPALIVE_TABLE` in `.env`, or adapt the payload in the script.
 
 ## Requirements
 
