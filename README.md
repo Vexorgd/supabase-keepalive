@@ -155,3 +155,8 @@ projects don't pause, and you should never rely on synthetic activity for anythi
 you can't afford to lose. Please don't use it to keep many idle projects alive or
 to sidestep usage‑based billing — that's not what it's for, and it's not fair use
 of the free tier.
+
+**You are responsible for reviewing and complying with [Supabase's Terms of
+Service](https://supabase.com/terms) and platform usage policies.** This tool is
+provided as‑is; using it does not grant permission to do anything those terms
+don't allow, and how you use it is your responsibility.
