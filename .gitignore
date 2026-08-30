@@ -2,9 +2,21 @@
 .vscode/
 .idea/
 
+# Generated locally by the FileStructure editor extension — never commit
+filestructure.txt
+
 # OS-specific trash
 .DS_Store
 Thumbs.db
 
 # Misc
 *.log
+
+# Secrets — never commit real credentials
+.env
+*.env
+
+# Private local notes / session handoffs (never pushed)
+*.local.md
+# Host-specific deploy helpers (operator-only, never pushed)
+*.local.sh

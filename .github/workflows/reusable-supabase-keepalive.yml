@@ -1,18 +1,33 @@
-name: Maintain Supabase Responsiveness
+# =============================================================================
+# DEPRECATED AND REMOVED.
+#
+# This v1 reusable workflow pinged Supabase's public /auth/v1/health endpoint.
+# That endpoint is served by the auth gateway and NEVER touches your Postgres
+# database, so it did not count as activity and your project still paused.
+#
+# The behavior has been removed. This stub remains only so that existing callers
+# referencing it (e.g. `@main`) get a CLEAR migration error instead of a cryptic
+# "workflow not found". It keeps the old `workflow_call` inputs so the reference
+# still resolves; the job then fails on purpose with a migration message.
+#
+# Migrate to v2 (a real, verified DB write):
+#   https://github.com/Vexorgd/supabase-keepalive#readme
+# =============================================================================
+name: Supabase Keepalive (DEPRECATED — removed)
+
 on:
   workflow_call:
     secrets:
       SUPABASE_URL:
-        required: true
+        required: false
       SUPABASE_ANON:
-        required: true
+        required: false
 
 jobs:
-  ping:
+  deprecated:
     runs-on: ubuntu-latest
     steps:
-      - name: Ping public /auth/v1/health endpoint
+      - name: Deprecation notice
         run: |
-          (curl -fsSL "${{ secrets.SUPABASE_URL }}/auth/v1/health?apikey=${{ secrets.SUPABASE_ANON }}" \
-            && echo "OK – Supabase instance is responsive.") \
-            || echo "::warning:: Health check ping failed."
+          echo "::error title=supabase-keepalive v1 removed::The /auth/v1/health ping never kept your database awake (it does not touch Postgres). Migrate to v2 — a real, verified DB write: https://github.com/Vexorgd/supabase-keepalive#readme"
+          exit 1
